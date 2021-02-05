@@ -101,3 +101,16 @@ class SimpleSceneClassifier:
         res[pos_bool] = 0
         res[neg_bool] = 1
         return np.sum(res)/X.shape[0]
+
+    def cross_valid(self, X, Y, evalfn, nfold=3):
+        """n-fold Cross Validation"""
+        m = X.shape[0]
+        splits = np.linspace(0, m, nfold+1).astype(int)
+        v = 0
+        for low, high in zip(splits[0:-1], splits[1:]):
+            trainX = np.vstack((X[:low, :], X[high:, :]))
+            trainY = np.vstack((Y[:low, :], Y[high:, :]))
+            validX = X[low:high, :]
+            validY = Y[low:high, :]
+            v += evalfn(trainX, trainY, validX, validY)
+        return v/nfold
