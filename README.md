@@ -8,3 +8,8 @@ When every time it detects motion, it will be like...
 ## Acknowledgement
 
 -   [NumPy](https://numpy.org/)
+-   [OpenCV Python](https://github.com/opencv/opencv-python)
+-   [Scikit Learn](https://scikit-learn.org/)
+-   [Pandas](https://pandas.pydata.org/)
+-   [Typer](https://github.com/tiangolo/typer)
+-   [Visdom](https://github.com/fossasia/visdom)
