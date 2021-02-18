@@ -29,3 +29,8 @@ class SimpleSceneClassifier:
     def save_model(self, model, model_name):
         from joblib import dump
         dump(model, model_name)
+
+    def load_model(self,  model_name):
+        from joblib import load
+        model = load(model_name)
+        return model

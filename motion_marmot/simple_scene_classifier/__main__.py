@@ -14,11 +14,10 @@ def train(train_data: str):
 
 @app.command()
 def test(test_data: str):
-    from joblib import load
     from sklearn.metrics import accuracy_score
     ssc = SimpleSceneClassifier('test')
     test_x, test_y = ssc.data_extraction(test_data)
-    scene_knn_model = load('model/scene_knn_model')
+    scene_knn_model = ssc.load_model('model/scene_knn_model')
     knn_prediction = scene_knn_model.predict(test_x)
     accuracy = accuracy_score(knn_prediction, test_y)
     print(accuracy)
