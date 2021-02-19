@@ -3,7 +3,7 @@ import time
 import cv2
 import numpy as np
 from visdom import Visdom
-from advanced_motion_filter import AdvancedMotionFilter, BoundingBox
+from advanced_motion_filter import AdvancedMotionFilter, BoundingBox, MaskArea
 
 
 def frame_convert(frame):
@@ -50,8 +50,15 @@ class VisdomPlayground():
         mask = self.amf.mog2_mf.apply(frame.copy())
         display_frame = frame.copy()
         contours = self.amf.calculate_contours(mask)
+        mask_area = MaskArea(contours)
+        frame_scene = self.amf.ssc.predict(
+            mask_area.avg,
+            mask_area.std,
+            self.frame_width,
+            self.frame_height
+        )
         for contour in contours:
-            if not self.amf.mog2_is_detected(contour):
+            if not self.amf.mog2_is_detected(contour, frame_scene):
                 continue
             box = BoundingBox(*cv2.boundingRect(contour))
             self.amf.draw_detection_box(box, display_frame)

@@ -25,9 +25,9 @@ class AdvancedMotionFilter():
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )[0]
 
-    def mog2_is_detected(self, contour):
+    def mog2_is_detected(self, contour, scene):
         area = cv2.contourArea(contour)
-        return area > self.config.get('bounding_box_thresh')
+        return area > self.config.get('bounding_box_thresh') and scene != 3
 
     def draw_detection_box(self, box, frame):
         cv2.rectangle(frame, (box.x, box.y), (box.x + box.w, box.y + box.h), (255, 0, 0), 2)
