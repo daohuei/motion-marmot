@@ -9,13 +9,17 @@ class AdvancedMotionFilter():
     Automation of the motion filter to improve the FP rate.
     """
     DEFAULT_CONFIG = {
-        'bounding_box_thresh': 200
+        'bounding_box_thresh': 200,
+        'variance_thresh': 10
     }
 
-    def __init__(self, ssc_model: str):
+    def __init__(self, ssc_model: str, variance_sample_amount=5):
         self.ssc = SimpleSceneClassifier("For Advanced Motion Filter", ssc_model)
         self.mog2_mf = cv2.createBackgroundSubtractorMOG2()
         self.config = self.DEFAULT_CONFIG
+        self.variance_sample_amount = variance_sample_amount
+        self.prev_frame_storage = []
+        self.prev_frame_storage = [self.calculate_variance(0)]
 
     def __str__(self):
         return f"AdvancedMotionFilter(ssc={self.ssc},config={self.config})"
@@ -25,12 +29,23 @@ class AdvancedMotionFilter():
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )[0]
 
-    def mog2_is_detected(self, contour, scene):
+    def mog2_is_detected(self, contour, scene, variance):
         area = cv2.contourArea(contour)
-        return area > self.config.get('bounding_box_thresh') and scene != 3
+        return area > self.config.get('bounding_box_thresh') and \
+            scene != 3 and \
+            variance < self.config.get('variance_thresh')
 
     def draw_detection_box(self, box, frame):
         cv2.rectangle(frame, (box.x, box.y), (box.x + box.w, box.y + box.h), (255, 0, 0), 2)
+
+    def calculate_variance(self, std):
+        self.prev_frame_storage.append(std)
+        if len(self.prev_frame_storage) > self.variance_sample_amount:
+            self.prev_frame_storage.pop(0)
+        variance = 0
+        if len(self.prev_frame_storage) > 0:
+            variance = np.var(self.prev_frame_storage)
+        return variance
 
 
 class MaskArea():

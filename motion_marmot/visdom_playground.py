@@ -57,8 +57,9 @@ class VisdomPlayground():
             self.frame_width,
             self.frame_height
         )
+        variance = self.amf.calculate_variance(mask_area.std)
         for contour in contours:
-            if not self.amf.mog2_is_detected(contour, frame_scene):
+            if not self.amf.mog2_is_detected(contour, frame_scene, variance):
                 continue
             box = BoundingBox(*cv2.boundingRect(contour))
             self.amf.draw_detection_box(box, display_frame)
