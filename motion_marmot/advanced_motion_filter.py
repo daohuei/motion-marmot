@@ -29,11 +29,29 @@ class AdvancedMotionFilter():
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )[0]
 
-    def mog2_is_detected(self, contour, scene, variance):
+    def mog2_is_detected(
+        self,
+        contour,
+        scene,
+        dynamic_bbx_thresh,
+        variance,
+        history_variance=False,
+        large_bg_movement=False,
+        dynamic_bbx=False
+    ):
         area = cv2.contourArea(contour)
-        return area > self.config.get('bounding_box_thresh') and \
-            scene != 3 and \
-            variance < self.config.get('variance_thresh')
+
+        bounding_box_bool = \
+            ((not dynamic_bbx or scene != 2) and area > self.config.get('bounding_box_thresh')) or \
+            (dynamic_bbx and scene == 2 and area > dynamic_bbx_thresh)
+        large_bg_movement_bool = \
+            (not large_bg_movement) or \
+            (large_bg_movement and scene != 3)
+        history_variance_bool = \
+            (not history_variance) or \
+            (history_variance and variance < self.config.get('variance_thresh'))
+
+        return bounding_box_bool and large_bg_movement_bool and history_variance_bool
 
     def draw_detection_box(self, box, frame):
         cv2.rectangle(frame, (box.x, box.y), (box.x + box.w, box.y + box.h), (255, 0, 0), 2)
