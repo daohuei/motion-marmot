@@ -11,7 +11,7 @@ The motion filter can possibly filter out all static frames in order to reduce b
 
 ## Prerequisite
 
-### Package Installment
+### Package Installation
 
 ```bash
 python3 setup.py install [--user] # --user is for either installing in user local side or global.
