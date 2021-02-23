@@ -1,9 +1,9 @@
 import typer
 import time
 import cv2
-import numpy as np
 from visdom import Visdom
 from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingBox, MaskArea
+from motion_marmot.utils.video_utils import extract_video
 
 
 def frame_convert(frame):
@@ -27,33 +27,12 @@ class VisdomPlayground():
         self.viz.close(env="visdom_playground")
         self.viz_config = self.DEFAULT_CONFIG
         self.ctl = None
-        self.frame_list = self.init_frame(video)
+        self.frame_list, video_meta = extract_video(video)
+        self.frame_width = video_meta['width']
+        self.frame_height = video_meta['height']
+        self.frame_fps = video_meta['fps']
         self.amf = AdvancedMotionFilter('model/scene_knn_model')
         self.init_control_panel()
-
-    def init_frame(self, video):
-        cap = cv2.VideoCapture(video)
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        self.frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        self.frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        self.frame_fps = int(cap.get(cv2.CAP_PROP_FPS))
-
-        video_frames = np.empty(
-            (
-                frame_count,
-                self.frame_height,
-                self.frame_width,
-                3
-            ),
-            np.dtype('uint8')
-        )
-        i = 0
-        ret = True
-        while (i < frame_count and ret):
-            ret, video_frames[i] = cap.read()
-            i += 1
-        cap.release()
-        return video_frames
 
     def init_control_panel(self):
         def update(name):
