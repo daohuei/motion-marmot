@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 def setup_package():
     setup(
         name="motion-marmot",
-        description="motion detector",
+        description="The marmot serves as a motion detector which can target out all possible motions.",
         url="https://github.com/daohuei/motion-marmot",
         author="daohuei",
         author_email="tingken0214@gmail.com",
