@@ -3,7 +3,7 @@ import time
 import cv2
 import numpy as np
 from visdom import Visdom
-from advanced_motion_filter import AdvancedMotionFilter, BoundingBox, MaskArea
+from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingBox, MaskArea
 
 
 def frame_convert(frame):
