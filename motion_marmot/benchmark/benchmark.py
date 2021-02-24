@@ -55,7 +55,7 @@ def recur_motion_filter(flag, video, config):
     while flag():
         run_motion_filter(amf, video_frames, video_meta, config, flag)
     global contour_count
-    print(contour_count)
+    print(f'Processed Contours Number: {contour_count}')
 
 
 @app.command()
@@ -82,12 +82,11 @@ def evaluate_cpu(
     amf_thread.start()
     time.sleep(3.5)
     # run the pidstat
-    pidstat_command = f'pidstat -u -p {pid} {interval} {count}'
+    pidstat_command = f'pidstat -u -p {pid} {interval} {count} | tail -n 1'
     pidstat_process = os.popen(pidstat_command, 'r')
     print(pidstat_process.read())
     pidstat_process.close()
     # kill thread
-    print('killing thread')
     thread_flag = False
 
 
