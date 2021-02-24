@@ -11,18 +11,54 @@ The motion filter can possibly filter out all static frames in order to reduce b
 
 ## Prerequisite
 
-### Package Installation
+### Python Package Installation
 
 ```bash
 python3 setup.py install [--user] # --user is for either installing in user local side or global.
 ```
 
+### Benchmark Utils Installation
+
+1. pidstat: a tool to evaluate the process given `pid`
+    > `pidstat` is actually under the package of `sysstat`
+
+```bash
+sudo apt install sysstat
+```
+
 ## Usage
 
-### Using Visdom
+### Run Visdom Visualization
 
 ```bash
 python3 motion-marmot/visualization/visdom_playground.py video_clip.mp4
+```
+
+### Run Benchmark
+
+#### CPU Evaluation
+
+The benchmark script will run motion filter with (<img src="https://render.githubusercontent.com/render/math?math=(interval)*(count)">) seconds and then output the CPU metrics.
+
+```bash
+python -m motion_marmot.benchmark.benchmark evaluate-cpu VIDEO INTERVAL COUNT
+```
+
+```
+Arguments:
+  VIDEO     [required] The path to the video clip
+  INTERVAL  [required] In seconds
+  COUNT     [required]
+
+Options:
+  --variance / --no-variance      [default: False]
+    whether activate high motion difference variance filter
+  --large-bg-movement / --no-large-bg-movement
+                                  [default: False]
+    whether activate large background movement filter
+  --dynamic-bbx / --no-dynamic-bbx
+                                  [default: False]
+    whether activate dynamic bounding box according to the mask contour size
 ```
 
 ## Acknowledgement
