@@ -4,7 +4,6 @@ import typer
 import time
 import threading
 import os
-# from datetime import datetime
 
 app = typer.Typer()
 contour_count = 0
@@ -13,15 +12,25 @@ contour_count = 0
 def motion_detection(amf: AdvancedMotionFilter, frame, meta, config):
     mask = amf.mog2_mf.apply(frame.copy())
     contours = amf.calculate_contours(mask)
-    mask_area = MaskArea(contours)
-    frame_scene = amf.ssc.predict(
-        mask_area.avg,
-        mask_area.std,
-        meta['width'],
-        meta['height']
-    )
-    dynamic_bbx_thresh = mask_area.avg + mask_area.std
-    variance = amf.calculate_variance(mask_area.std)
+    is_variance_activated = config.get('variance')
+    is_large_bg_movement_activated = config.get('large_bg_movement')
+    is_dynamic_bbx_activated = config.get('dynamic_bbx')
+    variance = 0
+    frame_scene = 0
+    dynamic_bbx_thresh = 0
+    if is_variance_activated or is_large_bg_movement_activated or is_dynamic_bbx_activated:
+        mask_area = MaskArea(contours)
+        if is_variance_activated:
+            variance = amf.calculate_variance(mask_area.std)
+        if is_large_bg_movement_activated or is_dynamic_bbx_activated:
+            frame_scene = amf.ssc.predict(
+                mask_area.avg,
+                mask_area.std,
+                meta['width'],
+                meta['height']
+            )
+        if is_dynamic_bbx_activated:
+            dynamic_bbx_thresh = mask_area.avg + mask_area.std
     for contour in contours:
         global contour_count
         contour_count += 1
@@ -30,9 +39,9 @@ def motion_detection(amf: AdvancedMotionFilter, frame, meta, config):
             scene=frame_scene,
             dynamic_bbx_thresh=dynamic_bbx_thresh,
             variance=variance,
-            history_variance=config.get('variance'),
-            large_bg_movement=config.get('large_bg_movement'),
-            dynamic_bbx=config.get('dynamic_bbx')
+            history_variance=is_variance_activated,
+            large_bg_movement=is_large_bg_movement_activated,
+            dynamic_bbx=is_dynamic_bbx_activated
         ):
             break
 
