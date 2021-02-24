@@ -3,16 +3,7 @@ import time
 import cv2
 from visdom import Visdom
 from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingBox, MaskArea
-from motion_marmot.utils.video_utils import extract_video
-
-
-def frame_convert(frame):
-    display_frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    return display_frame_rgb.transpose((2, 0, 1))
-
-
-def frame_resize(frame):
-    return cv2.resize(frame.copy(), (320, 180)).copy()
+from motion_marmot.utils.video_utils import extract_video, frame_convert, frame_resize
 
 
 class VisdomPlayground():

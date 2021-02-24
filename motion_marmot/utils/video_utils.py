@@ -26,3 +26,12 @@ def extract_video(video: str):
         i += 1
     cap.release()
     return video_frames, video_meta
+
+
+def frame_convert(frame):
+    display_frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return display_frame_rgb.transpose((2, 0, 1))
+
+
+def frame_resize(frame):
+    return cv2.resize(frame.copy(), (320, 180)).copy()
