@@ -2,7 +2,7 @@ import typer
 import time
 import cv2
 from visdom import Visdom
-from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingBox, MaskArea
+from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingBox, MotionMaskMetadata
 from motion_marmot.utils.video_utils import extract_video, frame_convert, frame_resize
 
 
@@ -73,7 +73,7 @@ class VisdomPlayground():
         mask = self.amf.mog2_mf.apply(frame.copy())
         display_frame = frame.copy()
         contours = self.amf.calculate_contours(mask)
-        mask_area = MaskArea(contours)
+        mask_area = MotionMaskMetadata(contours)
         frame_scene = self.amf.ssc.predict(
             mask_area.avg,
             mask_area.std,

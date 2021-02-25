@@ -1,5 +1,5 @@
 from motion_marmot.utils.video_utils import extract_video
-from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, MaskArea
+from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, MotionMaskMetadata
 from datetime import datetime
 import typer
 import time
@@ -21,7 +21,7 @@ def motion_detection(amf: AdvancedMotionFilter, frame, meta, config):
     frame_scene = 0
     dynamic_bbx_thresh = 0
     if is_variance_activated or is_large_bg_movement_activated or is_dynamic_bbx_activated:
-        mask_area = MaskArea(contours)
+        mask_area = MotionMaskMetadata(contours)
         if is_variance_activated:
             variance = amf.calculate_variance(mask_area.std)
         if is_large_bg_movement_activated or is_dynamic_bbx_activated:
