@@ -1,5 +1,6 @@
 from motion_marmot.utils.video_utils import extract_video
 from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, MaskArea
+from datetime import datetime
 import typer
 import time
 import threading
@@ -7,6 +8,7 @@ import os
 
 app = typer.Typer()
 contour_count = 0
+frame_count = 0
 
 
 def motion_detection(amf: AdvancedMotionFilter, frame, meta, config):
@@ -29,8 +31,8 @@ def motion_detection(amf: AdvancedMotionFilter, frame, meta, config):
                 meta['width'],
                 meta['height']
             )
-        if is_dynamic_bbx_activated:
-            dynamic_bbx_thresh = mask_area.avg + mask_area.std
+            if is_dynamic_bbx_activated:
+                dynamic_bbx_thresh = mask_area.avg + mask_area.std
     for contour in contours:
         global contour_count
         contour_count += 1
@@ -43,11 +45,13 @@ def motion_detection(amf: AdvancedMotionFilter, frame, meta, config):
             large_bg_movement=is_large_bg_movement_activated,
             dynamic_bbx=is_dynamic_bbx_activated
         ):
-            break
+            pass
 
 
 def run_motion_filter(amf, video_frames: list, video_meta, config, flag):
     for frame in video_frames:
+        global frame_count
+        frame_count += 1
         motion_detection(
             amf=amf,
             frame=frame,
@@ -61,10 +65,12 @@ def run_motion_filter(amf, video_frames: list, video_meta, config, flag):
 def recur_motion_filter(flag, video, config):
     video_frames, video_meta = extract_video(video)
     amf = AdvancedMotionFilter('model/scene_knn_model')
+    print(f'Start running at: {datetime.fromtimestamp(time.time())}')
     while flag():
         run_motion_filter(amf, video_frames, video_meta, config, flag)
-    global contour_count
+    global contour_count, frame_count
     print(f'Processed Contours Number: {contour_count}')
+    print(f'Processed Frames Number: {frame_count}')
 
 
 @app.command()
@@ -89,7 +95,7 @@ def evaluate_cpu(
 
     amf_thread = threading.Thread(target=recur_motion_filter, args=(flag_trigger, video, config))
     amf_thread.start()
-    time.sleep(3.5)
+    time.sleep(5)
     # run the pidstat
     pidstat_command = f'pidstat -u -p {pid} {interval} {count} | tail -n 1'
     pidstat_process = os.popen(pidstat_command, 'r')
