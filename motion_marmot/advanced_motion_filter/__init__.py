@@ -9,7 +9,7 @@ class AdvancedMotionFilter():
     """
     DEFAULT_CONFIG = {
         'bounding_box_thresh': 200,
-        'variance_thresh': 10
+        'variance_thresh': 100
     }
 
     def __init__(self, ssc_model: str, variance_sample_amount=5):
