@@ -81,16 +81,8 @@ class MotionMaskMetadata():
     """
 
     def __init__(self, contours):
-        """Init function for MotionMaskMetadata"""
         self.contours = contours
-        self.contour_area_list = list()
-        for contour in self.contours:
-            area = cv2.contourArea(contour)
-            self.contour_area_list.append(area)
-
-        self.count = len(self.contour_area_list)
-        self.total = sum(self.contour_area_list) if self.count > 0 else 0
-        self.avg = self.total / self.count if self.count > 0 else 0
-        self.std = np.std(np.array(self.contour_area_list))
-        if np.isnan(self.std):
-            self.std = 0.0
+        self.contour_area_list = [cv2.contourArea(contour) for contour in self.contours]
+        self.total = sum(self.contour_area_list)
+        self.avg = self.total / len(self.contour_area_list) if self.contour_area_list else 0
+        self.std = np.std(np.array(self.contour_area_list)) if self.contour_area_list else 0
