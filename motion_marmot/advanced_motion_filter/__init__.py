@@ -48,6 +48,7 @@ class AdvancedMotionFilter():
             (large_bg_movement and scene != 3)
         history_variance_bool = \
             (not history_variance) or \
+            (scene == 1) or \
             (history_variance and variance < self.config.get('variance_thresh'))
 
         return bounding_box_bool and large_bg_movement_bool and history_variance_bool
