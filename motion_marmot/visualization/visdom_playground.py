@@ -8,7 +8,10 @@ from motion_marmot.utils.video_utils import extract_video, frame_convert, frame_
 
 class VisdomPlayground():
     DEFAULT_CONFIG = {
+        "bounding_box_threshold": 200,
         "variance": False,
+        "variance_threshold": 100,
+        "variance_sample_amount": 5,
         "large_bg_movement": False,
         "dynamic_bbx": False
     }
@@ -29,9 +32,24 @@ class VisdomPlayground():
         def update(name):
             return self.viz.properties([
                 {
+                    "type": "number",
+                    "name": "Bounding Box Threshold",
+                    "value": self.viz_config.get('bounding_box_threshold', 200),
+                },
+                {
                     "type": "checkbox",
                     "name": "History Variance",
                     "value": self.viz_config.get('variance', False),
+                },
+                {
+                    "type": "number",
+                    "name": "History Variance Threshold",
+                    "value": self.viz_config.get('variance_threshold', 100),
+                },
+                {
+                    "type": "number",
+                    "name": "History Variance Sample Amount",
+                    "value": self.viz_config.get('variance_sample_amount', 5),
                 },
                 {
                     "type": "checkbox",
@@ -54,8 +72,14 @@ class VisdomPlayground():
                 .get('pane_data') \
                 .get('content')[context.get('propertyId')] \
                 .get('name')
-            if property_name == 'History Variance':
+            if property_name == 'Bounding Box Threshold':
+                self.viz_config['bounding_box_threshold'] = int(context.get('value'))
+            elif property_name == 'History Variance':
                 self.viz_config['variance'] = context.get('value')
+            elif property_name == 'History Variance Threshold':
+                self.viz_config['variance_threshold'] = int(context.get('value'))
+            elif property_name == 'History Variance Sample Amount':
+                self.viz_config['variance_sample_amount'] = int(context.get('value'))
             elif property_name == 'Large Background Movement':
                 self.viz_config['large_bg_movement'] = context.get('value')
             elif property_name == 'Dynamic Bounding Box':
@@ -88,7 +112,10 @@ class VisdomPlayground():
                 scene=frame_scene,
                 dynamic_bbx_thresh=dynamic_bbx_thresh,
                 variance=variance,
+                bounding_box_threshold=self.viz_config.get('bounding_box_threshold'),
                 history_variance=self.viz_config.get('variance'),
+                variance_threshold=self.viz_config.get('variance_threshold'),
+                variance_sample_amount=self.viz_config.get('variance_sample_amount'),
                 large_bg_movement=self.viz_config.get('large_bg_movement'),
                 dynamic_bbx=self.viz_config.get('dynamic_bbx')
             ):

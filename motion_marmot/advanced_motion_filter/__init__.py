@@ -7,15 +7,10 @@ class AdvancedMotionFilter():
     """
     Automation of the motion filter to improve the FP rate.
     """
-    DEFAULT_CONFIG = {
-        'bounding_box_thresh': 200,
-        'variance_thresh': 100
-    }
 
     def __init__(self, ssc_model: str, variance_sample_amount=5):
         self.ssc = SimpleSceneClassifier("For Advanced Motion Filter", ssc_model)
         self.mog2_mf = cv2.createBackgroundSubtractorMOG2()
-        self.config = self.DEFAULT_CONFIG
         self.variance_sample_amount = variance_sample_amount
         self.prev_frame_storage = []
         self.prev_frame_storage = [self.calculate_variance(0)]
@@ -34,21 +29,25 @@ class AdvancedMotionFilter():
         scene,
         dynamic_bbx_thresh,
         variance,
+        bounding_box_threshold=200,
         history_variance=False,
+        variance_threshold=100,
+        variance_sample_amount=5,
         large_bg_movement=False,
         dynamic_bbx=False
     ):
+        self.variance_sample_amount = variance_sample_amount
         area = cv2.contourArea(contour)
 
         bounding_box_bool = \
-            ((not dynamic_bbx or scene != 2) and area > self.config.get('bounding_box_thresh')) or \
+            ((not dynamic_bbx or scene != 2) and area > bounding_box_threshold) or \
             (dynamic_bbx and scene == 2 and area > dynamic_bbx_thresh)
         large_bg_movement_bool = \
             (not large_bg_movement) or \
             (large_bg_movement and scene != 3)
         history_variance_bool = \
             (not history_variance) or \
-            (history_variance and variance < self.config.get('variance_thresh'))
+            (history_variance and variance < variance_threshold)
 
         return bounding_box_bool and large_bg_movement_bool and history_variance_bool
 
