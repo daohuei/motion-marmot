@@ -106,6 +106,56 @@ def evaluate_cpu(
 
 
 @app.command()
+def motion_counts(
+    video: str,
+    bounding_box_threshold: int,
+    history_variance: bool,
+    variance_threshold: int,
+    variance_sample_amount: int,
+    large_bg_movement: bool,
+    dynamic_bbx: bool
+):
+    print("Extracting")
+    video_frames, video_meta = extract_video(video)
+    amf = AdvancedMotionFilter('model/scene_knn_model')
+    count = 0
+    print("Detecting")
+    total = len(video_frames)
+    i = 1
+    for frame in video_frames:
+        print(f'{int((i+1)/total*100)} %', end='\r')
+        mask = amf.mog2_mf.apply(frame.copy())
+        contours = amf.calculate_contours(mask)
+        mask_area = MotionMaskMetadata(contours)
+        frame_scene = amf.ssc.predict(
+            mask_area.avg,
+            mask_area.std,
+            video_meta['width'],
+            video_meta['height']
+        )
+        dynamic_bbx_thresh = mask_area.avg + mask_area.std
+        variance = amf.calculate_variance(mask_area.std)
+        for contour in contours:
+            if amf.mog2_is_detected(
+                contour=contour,
+                scene=frame_scene,
+                dynamic_bbx_thresh=dynamic_bbx_thresh,
+                variance=variance,
+                bounding_box_threshold=bounding_box_threshold,
+                history_variance=history_variance,
+                variance_threshold=variance_threshold,
+                variance_sample_amount=variance_sample_amount,
+                large_bg_movement=large_bg_movement,
+                dynamic_bbx=dynamic_bbx
+            ):
+                count += 1
+                break
+        i += 1
+    print('\n')
+    print(count)
+
+
+@app.command()
 def run():
     print("dummy command")
 
