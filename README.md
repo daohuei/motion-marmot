@@ -28,6 +28,8 @@ sudo apt install sysstat
 
 ## Usage
 
+> restriction: the video clip size should be up to your RAM. Or else your hardwares may explode(jk)
+
 ### Run Visdom Visualization
 
 ```bash
@@ -36,7 +38,15 @@ python3 motion-marmot/visualization/visdom_playground.py video_clip.mp4
 
 ### Run Benchmark
 
-#### CPU Evaluation
+#### Motion Counts
+
+Motion Counts will calculate total motion frames count in the given video clips
+
+```
+python -m motion_marmot.benchmark.benchmark motion-counts VIDEO BOUNDING_BOX_THRESHOLD HISTORY_VARIANCE VARIANCE_THRESHOLD VARIANCE_SAMPLE_AMOUNT LARGE_BG_MOVEMENT DYNAMIC_BBX
+```
+
+#### CPU Evaluation (WIP)
 
 The benchmark script will run motion filter with (<img src="https://render.githubusercontent.com/render/math?math=(interval)*(count)">) seconds and then output the CPU metrics.
 
