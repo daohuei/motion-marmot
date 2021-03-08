@@ -1,8 +1,7 @@
-import typer
 import time
-import cv2
+import typer
 from visdom import Visdom
-from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingBox, MotionMaskMetadata
+from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingBox
 from motion_marmot.utils.video_utils import extract_video, frame_convert, frame_resize
 
 
