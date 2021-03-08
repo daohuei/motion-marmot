@@ -112,6 +112,43 @@ class AMFVisdom():
         )
         return display_frame
 
+    def predict_frame_scene(self, frame):
+        mask = self.amf.apply(frame)
+        mask_metadata = self.amf.calculate_mask_metadata(mask)
+        frame_scene = self.amf.ssc.predict(
+            mask_metadata.avg,
+            mask_metadata.std,
+            self.amf.frame_width,
+            self.amf.frame_height
+        )
+        return frame_scene
+
+    def show_ssc_graph(self):
+
+        print('Show SSC Graph')
+
+        ssc_prediction = []
+
+        for frame in self.frame_list:
+            resized_frame = frame_resize(frame.copy())
+            frame_scene = self.predict_frame_scene(resized_frame)
+            ssc_prediction.append(frame_scene)
+
+        n = len(self.frame_list)
+        x = np.linspace(0, n-1, num=n)
+        scene_y = np.array(ssc_prediction)
+
+        self.viz.line(
+            X=x,
+            Y=scene_y,
+            opts=dict(
+                title="ssc prediction graph",
+                showlegend=True
+            ),
+            env="amf_ssc",
+            win="ssc_prediction_graph"
+        )
+
     def stream_video(self):
         for frame in self.frame_list:
             resized_frame = frame_resize(frame.copy())
@@ -537,6 +574,13 @@ def run_amf(video: str):
 def params_graph(video: str):
     amf_visdom = AMFParamVisdom(video)
     amf_visdom.show_params_graph()
+
+
+@app.command()
+def ssc_graph(video: str):
+    amf_visdom = AMFVisdom(video)
+    amf_visdom.viz.close(env='amf_ssc')
+    amf_visdom.show_ssc_graph()
 
 
 def main():
