@@ -125,3 +125,32 @@ class MotionMaskMetadata():
         self.total = sum(self.contour_area_list)
         self.avg = self.total / len(self.contour_area_list) if self.contour_area_list else 0
         self.std = np.std(np.array(self.contour_area_list)) if self.contour_area_list else 0
+
+
+class FD():
+    """
+    Frame Difference Motion Filter
+    """
+
+    def __init__(self):
+        self.avg_frame = None
+
+    def apply(self, frame, delta_thresh=5, isBlur=True):
+        """
+        Apply the motion filter
+        """
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        if isBlur:
+            gray_frame = cv2.GaussianBlur(gray_frame, (21, 21), 0)
+        if self.avg_frame is None:
+            self.avg_frame = gray_frame.copy().astype("float")
+        cv2.accumulateWeighted(gray_frame, self.avg_frame, 0.5)
+        frame_delta = cv2.absdiff(
+            gray_frame, cv2.convertScaleAbs(self.avg_frame)
+        )
+
+        fd_mask = cv2.threshold(frame_delta, delta_thresh, 255, cv2.THRESH_BINARY)[1]
+        fd_mask = cv2.dilate(fd_mask, None, iterations=2)
+
+        return fd_mask.copy()
