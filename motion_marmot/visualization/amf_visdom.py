@@ -5,7 +5,7 @@ from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingB
 from motion_marmot.utils.video_utils import extract_video, frame_convert, frame_resize
 
 
-class VisdomPlayground():
+class AMFVisdom():
     DEFAULT_CONFIG = {
         "bounding_box_threshold": 200
     }
@@ -150,9 +150,9 @@ app = typer.Typer()
 
 
 @app.command()
-def run(video: str):
-    vp = VisdomPlayground(video)
-    vp.start()
+def run_amf(video: str):
+    amf_visdom = AMFVisdom(video)
+    amf_visdom.start()
 
 
 def main():
