@@ -54,13 +54,8 @@ class AdvancedMotionFilter():
         motion_bbxes = []
 
         # calculate related parameters according to the motion mask
-        mask_metadata = MotionMaskMetadata(
-            cv2.findContours(
-                mask.copy(),
-                cv2.RETR_EXTERNAL,
-                cv2.CHAIN_APPROX_SIMPLE
-            )[0]
-        )
+        mask_metadata = self.calculate_mask_metadata(mask)
+
         variance = self.calculate_variance(mask_metadata.std)
 
         # use contours variance to drop sudden motion
@@ -93,8 +88,8 @@ class AdvancedMotionFilter():
 
         return motion_bbxes
 
-    def draw_detection_box(self, box, frame):
-        cv2.rectangle(frame, (box.x, box.y), (box.x + box.w, box.y + box.h), (255, 0, 0), 2)
+    def draw_detection_box(self, box, frame, color=(255, 0, 0)):
+        cv2.rectangle(frame, (box.x, box.y), (box.x + box.w, box.y + box.h), color, 2)
 
     def calculate_variance(self, std):
         self.prev_frame_storage.append(std)
@@ -102,6 +97,15 @@ class AdvancedMotionFilter():
             self.prev_frame_storage.pop(0)
         variance = np.var(self.prev_frame_storage) if self.prev_frame_storage else 0
         return variance
+
+    def calculate_mask_metadata(self, mask):
+        return MotionMaskMetadata(
+            cv2.findContours(
+                mask.copy(),
+                cv2.RETR_EXTERNAL,
+                cv2.CHAIN_APPROX_SIMPLE
+            )[0]
+        )
 
 
 class BoundingBox():
