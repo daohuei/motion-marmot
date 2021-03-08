@@ -32,8 +32,16 @@ sudo apt install sysstat
 
 ### Run Visdom Visualization
 
+1. Visualize the motion with streaming frames
+
 ```bash
-python -m motion_marmot.visualization.visdom_playground video_clip.mp4
+python -m motion_marmot.visualization.amf_visdom run-amf video_clip.mp4
+```
+
+2. Visualize the parameters as graphs in all frames
+
+```bash
+python -m motion_marmot.visualization.amf_visdom params-graph video_clip.mp4
 ```
 
 ### Run Benchmark
