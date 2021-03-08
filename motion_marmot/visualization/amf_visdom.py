@@ -59,7 +59,7 @@ class AMFVisdom():
                     "name": "Dynamic Bounding Box",
                     "value": self.amf.amf_dynamic_bbx,
                 }
-            ], win=name, env="amf")
+            ], win=name, env="amf_stream")
 
         def trigger(context):
             if context["event_type"] != "PropertyUpdate":
@@ -108,7 +108,7 @@ class AMFVisdom():
                 width=320,
                 height=250,
             ),
-            env="amf"
+            env="amf_stream"
         )
         return display_frame
 
@@ -124,14 +124,14 @@ class AMFVisdom():
                     width=320,
                     height=250,
                 ),
-                env="amf"
+                env="amf_stream"
             )
 
             time.sleep(1.0/self.frame_fps)
 
     def start(self):
         print("Visdom Playground Activating")
-        self.viz.close(env="amf")
+        self.viz.close(env="amf_stream")
         self.init_control_panel()
         while True:
             self.stream_video()
