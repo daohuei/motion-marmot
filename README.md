@@ -33,7 +33,7 @@ sudo apt install sysstat
 ### Run Visdom Visualization
 
 ```bash
-python3 motion-marmot/visualization/visdom_playground.py video_clip.mp4
+python -m motion_marmot.visualization.visdom_playground video_clip.mp4
 ```
 
 ### Run Benchmark
