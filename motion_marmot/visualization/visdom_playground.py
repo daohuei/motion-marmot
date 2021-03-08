@@ -8,12 +8,7 @@ from motion_marmot.utils.video_utils import extract_video, frame_convert, frame_
 
 class VisdomPlayground():
     DEFAULT_CONFIG = {
-        "bounding_box_threshold": 200,
-        "variance": False,
-        "variance_threshold": 100,
-        "variance_sample_amount": 5,
-        "large_bg_movement": False,
-        "dynamic_bbx": False
+        "bounding_box_threshold": 200
     }
 
     def __init__(self, video):
@@ -22,10 +17,12 @@ class VisdomPlayground():
         self.viz_config = self.DEFAULT_CONFIG
         self.ctl = None
         self.frame_list, video_meta = extract_video(video)
-        self.frame_width = video_meta['width']
-        self.frame_height = video_meta['height']
         self.frame_fps = video_meta['fps']
-        self.amf = AdvancedMotionFilter('model/scene_knn_model')
+        self.amf = AdvancedMotionFilter(
+            ssc_model='model/scene_knn_model',
+            frame_width=video_meta['width'],
+            frame_height=video_meta['height']
+        )
         self.init_control_panel()
 
     def init_control_panel(self):
@@ -39,27 +36,27 @@ class VisdomPlayground():
                 {
                     "type": "checkbox",
                     "name": "History Variance",
-                    "value": self.viz_config.get('variance', False),
+                    "value": self.amf.amf_history_variance,
                 },
                 {
                     "type": "number",
                     "name": "History Variance Threshold",
-                    "value": self.viz_config.get('variance_threshold', 100),
+                    "value": self.amf.amf_variance_threshold,
                 },
                 {
                     "type": "number",
                     "name": "History Variance Sample Amount",
-                    "value": self.viz_config.get('variance_sample_amount', 5),
+                    "value": self.amf.amf_variance_sample_amount,
                 },
                 {
                     "type": "checkbox",
                     "name": "Large Background Movement",
-                    "value": self.viz_config.get('large_bg_movement', False),
+                    "value": self.amf.amf_drop_large_bg_motion,
                 },
                 {
                     "type": "checkbox",
                     "name": "Dynamic Bounding Box",
-                    "value": self.viz_config.get('dynamic_bbx', False),
+                    "value": self.amf.amf_dynamic_bbx,
                 }
             ], win=name, env="visdom_playground")
 
@@ -75,15 +72,15 @@ class VisdomPlayground():
             if property_name == 'Bounding Box Threshold':
                 self.viz_config['bounding_box_threshold'] = int(context.get('value'))
             elif property_name == 'History Variance':
-                self.viz_config['variance'] = context.get('value')
+                self.amf.amf_history_variance = context.get('value')
             elif property_name == 'History Variance Threshold':
-                self.viz_config['variance_threshold'] = int(context.get('value'))
+                self.amf.amf_variance_threshold = int(context.get('value'))
             elif property_name == 'History Variance Sample Amount':
-                self.viz_config['variance_sample_amount'] = int(context.get('value'))
+                self.amf.amf_variance_sample_amount = int(context.get('value'))
             elif property_name == 'Large Background Movement':
-                self.viz_config['large_bg_movement'] = context.get('value')
+                self.amf.amf_drop_large_bg_motion = context.get('value')
             elif property_name == 'Dynamic Bounding Box':
-                self.viz_config['dynamic_bbx'] = context.get('value')
+                self.amf.amf_dynamic_bbx = context.get('value')
             self.ctl.panel = update("Control Panel")
 
         self.ctl = VisdomControlPanel(
@@ -94,33 +91,14 @@ class VisdomPlayground():
         )
 
     def motion_detection(self, frame):
-        mask = self.amf.mog2_mf.apply(frame.copy())
+        mask = self.amf.apply(frame.copy())
         display_frame = frame.copy()
-        contours = self.amf.calculate_contours(mask)
-        mask_area = MotionMaskMetadata(contours)
-        frame_scene = self.amf.ssc.predict(
-            mask_area.avg,
-            mask_area.std,
-            self.frame_width,
-            self.frame_height
+        motion_bbxes = self.amf.detect_motion(
+            mask,
+            self.viz_config.get('bounding_box_threshold', 200)
         )
-        dynamic_bbx_thresh = mask_area.avg + mask_area.std
-        variance = self.amf.calculate_variance(mask_area.std)
-        for contour in contours:
-            if not self.amf.mog2_is_detected(
-                contour=contour,
-                scene=frame_scene,
-                dynamic_bbx_thresh=dynamic_bbx_thresh,
-                variance=variance,
-                bounding_box_threshold=self.viz_config.get('bounding_box_threshold'),
-                history_variance=self.viz_config.get('variance'),
-                variance_threshold=self.viz_config.get('variance_threshold'),
-                variance_sample_amount=self.viz_config.get('variance_sample_amount'),
-                large_bg_movement=self.viz_config.get('large_bg_movement'),
-                dynamic_bbx=self.viz_config.get('dynamic_bbx')
-            ):
-                continue
-            box = BoundingBox(*cv2.boundingRect(contour))
+        for bbx in motion_bbxes:
+            box = BoundingBox(*bbx)
             self.amf.draw_detection_box(box, display_frame)
         self.viz.image(
             mask,

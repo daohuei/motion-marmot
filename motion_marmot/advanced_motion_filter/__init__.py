@@ -5,62 +5,102 @@ from motion_marmot.simple_scene_classifier import SimpleSceneClassifier
 
 class AdvancedMotionFilter():
     """
-    Automation of the motion filter to improve the FP rate.
+    Advanced Motion Filter is using the parameters extracted from MOG2 mask
+    and filter out all possible FN scenes according to these parameters
     """
 
-    def __init__(self, ssc_model: str, variance_sample_amount=5):
+    def __init__(
+        self,
+        ssc_model: str,
+        frame_width: int,
+        frame_height: int,
+        amf_history_variance=False,
+        amf_variance_threshold=100,
+        amf_variance_sample_amount=5,
+        amf_frame_reduction=False,
+        amf_drop_large_bg_motion=False,
+        amf_dynamic_bbx=False
+    ):
+        self.mog2 = cv2.createBackgroundSubtractorMOG2()
+
+        self.amf_history_variance = amf_history_variance
+        self.amf_variance_threshold = amf_variance_threshold
+        self.amf_variance_sample_amount = amf_variance_sample_amount
+        self.amf_frame_reduction = amf_frame_reduction
+        self.amf_drop_large_bg_motion = amf_drop_large_bg_motion
+        self.amf_dynamic_bbx = amf_dynamic_bbx
+
+        self.frame_width = frame_width
+        self.frame_height = frame_height
+
         self.ssc = SimpleSceneClassifier("For Advanced Motion Filter", ssc_model)
-        self.mog2_mf = cv2.createBackgroundSubtractorMOG2()
-        self.variance_sample_amount = variance_sample_amount
         self.prev_frame_storage = []
-        self.prev_frame_storage = [self.calculate_variance(0)]
+        self.prev_drop_flag = False
 
     def __str__(self):
-        return f"AdvancedMotionFilter(ssc={self.ssc},config={self.config})"
+        return f"AdvancedMotionFilter(ssc={self.ssc})"
+
+    def apply(self, frame):
+        mask = self.mog2.apply(frame)
+        return mask
 
     def calculate_contours(self, mask):
         return cv2.findContours(
             mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )[0]
 
-    def mog2_is_detected(
-        self,
-        contour,
-        scene,
-        dynamic_bbx_thresh,
-        variance,
-        bounding_box_threshold=200,
-        history_variance=False,
-        variance_threshold=100,
-        variance_sample_amount=5,
-        large_bg_movement=False,
-        dynamic_bbx=False
-    ):
-        self.variance_sample_amount = variance_sample_amount
-        area = cv2.contourArea(contour)
+    def detect_motion(self, mask, min_area):
 
-        bounding_box_bool = \
-            ((not dynamic_bbx or scene != 2) and area > bounding_box_threshold) or \
-            (dynamic_bbx and scene == 2 and area > dynamic_bbx_thresh)
-        large_bg_movement_bool = \
-            (not large_bg_movement) or \
-            (large_bg_movement and scene != 3)
-        history_variance_bool = \
-            (not history_variance) or \
-            (history_variance and variance < variance_threshold)
+        motion_bbxes = []
 
-        return bounding_box_bool and large_bg_movement_bool and history_variance_bool
+        # calculate related parameters according to the motion mask
+        mask_metadata = MotionMaskMetadata(
+            cv2.findContours(
+                mask.copy(),
+                cv2.RETR_EXTERNAL,
+                cv2.CHAIN_APPROX_SIMPLE
+            )[0]
+        )
+        variance = self.calculate_variance(mask_metadata.std)
+
+        # use contours variance to drop sudden motion
+        if self.amf_history_variance:
+            history_variance_bool = variance < self.amf_variance_threshold
+            if not history_variance_bool:
+                return []
+
+        # Filtered by Simple Scene Classifier
+        if self.amf_drop_large_bg_motion or self.amf_dynamic_bbx:
+            # use KNN Simple Scene Classifier to classify frame scene
+            frame_scene = self.ssc.predict(
+                mask_metadata.avg,
+                mask_metadata.std,
+                self.frame_width,
+                self.frame_height
+            )
+            # drop large background motion
+            if self.amf_drop_large_bg_motion and frame_scene == 3:
+                return []
+            # adjust bounding box threshold (aka min_area) if the motion is small
+            if self.amf_dynamic_bbx and frame_scene == 2:
+                min_area = mask_metadata.avg + mask_metadata.std
+
+        for i, area in enumerate(mask_metadata.contour_area_list):
+            if area < min_area:
+                continue
+            (x, y, w, h) = cv2.boundingRect(mask_metadata.contours[i])
+            motion_bbxes.append((x, y, w, h))
+
+        return motion_bbxes
 
     def draw_detection_box(self, box, frame):
         cv2.rectangle(frame, (box.x, box.y), (box.x + box.w, box.y + box.h), (255, 0, 0), 2)
 
     def calculate_variance(self, std):
         self.prev_frame_storage.append(std)
-        if len(self.prev_frame_storage) > self.variance_sample_amount:
+        if len(self.prev_frame_storage) > self.amf_variance_sample_amount:
             self.prev_frame_storage.pop(0)
-        variance = 0
-        if len(self.prev_frame_storage) > 0:
-            variance = np.var(self.prev_frame_storage)
+        variance = np.var(self.prev_frame_storage) if self.prev_frame_storage else 0
         return variance
 
 
