@@ -1,3 +1,4 @@
+import os
 import time
 import typer
 import cv2
@@ -153,6 +154,7 @@ class AMFParamVisdom(AMFVisdom):
         self.label_list = np.zeros(len(self.frame_list)-1)
         self.label_start_index = 0
         self.label_end_index = 0
+        self.label_data_dir = ''
         self.label_class_value = 0
 
         # Basic features extracted from the MOG2 mask of each frame
@@ -273,6 +275,11 @@ class AMFParamVisdom(AMFVisdom):
                     "value": self.label_class_value,
                 },
                 {
+                    "type": "text",
+                    "name": "Label Data Directory Folder Name",
+                    "value": self.label_data_dir
+                },
+                {
                     "type": "button",
                     "name": "Store Label Value",
                     "value": "label it!"
@@ -294,12 +301,16 @@ class AMFParamVisdom(AMFVisdom):
                 self.label_end_index = int(context.get('value'))
             elif property_name == 'Label Class':
                 self.label_class_value = int(context.get('value'))
+            elif property_name == 'Label Data Directory Folder Name':
+                self.label_data_dir = context.get('value')
             elif property_name == 'Store Label Value':
                 if(self.label_start_index > self.label_end_index):
                     print("The start position need to be before the end")
+                elif not self.label_data_dir:
+                    print("Please input label data directory folder name")
                 else:
                     print("Stored the label value")
-                    self.export_train_data()
+                    self.export_train_data(self.label_data_dir)
 
             self.label_panel.panel = update("Label Panel")
 
@@ -310,8 +321,11 @@ class AMFParamVisdom(AMFVisdom):
             "Label Panel"
         )
 
-    def export_train_data(self):
-        file_name = "scene.csv"
+    def export_train_data(self, data_dir):
+        path = f'./data/{data_dir}'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        file_name = f"{path}/scene.csv"
         with open(file_name, 'a+', newline='') as train_dataset:
             # Create a writer object from csv module
             train_dataset_writer = writer(train_dataset)
@@ -319,8 +333,8 @@ class AMFParamVisdom(AMFVisdom):
                 train_dataset_writer.writerow([
                     self.avg_mask_list[i],
                     self.std_mask_list[i],
-                    self.frame_width,
-                    self.frame_height,
+                    self.amf.frame_width,
+                    self.amf.frame_height,
                     self.label_class_value
                 ])
 
