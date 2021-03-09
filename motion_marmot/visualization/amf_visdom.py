@@ -1,5 +1,6 @@
 import os
 import time
+import threading
 import typer
 import cv2
 import numpy as np
@@ -180,6 +181,15 @@ class AMFParamVisdom(AMFVisdom):
         self.get_frame_panel = None
         self.frame_number = 0
 
+        # Init the panel for video playback
+        self.video_playback_panel = None
+        self.playback_win = None
+        self.playback_mask_win = None
+        self.playback_thread = None
+        self.playback_flag = False
+        self.playback_start_frame = 0
+        self.playback_status = "Play"
+
         # For labeling the scene of SSC
         self.label_panel = None
         self.label_list = np.zeros(len(self.frame_list) - 1)
@@ -215,6 +225,79 @@ class AMFParamVisdom(AMFVisdom):
     def init_viz(self):
         self.init_get_frame_panel()
         self.init_label_panel()
+        self.init_video_playback_panel()
+
+    def init_video_playback_panel(self):
+        def update(name):
+            return self.viz.properties(
+                [
+                    {
+                        "type": "number",
+                        "name": "Playback Start Frame",
+                        "value": self.playback_start_frame,
+                    },
+                    {
+                        "type": "button",
+                        "name": "Play",
+                        "value": self.playback_status,
+                    },
+                ],
+                win=name,
+                env="amf_params",
+            )
+
+        def trigger(context):
+            if context["event_type"] != "PropertyUpdate":
+                return
+            if context["target"] != self.video_playback_panel.panel:
+                return
+            property_name = (
+                context.get("pane_data")
+                .get("content")[context.get("propertyId")]
+                .get("name")
+            )
+            if property_name == "Playback Start Frame":
+                self.playback_start_frame = int(context.get("value"))
+            elif property_name == "Play":
+                if self.playback_status == "Play":
+                    self.playback_flag = True
+                    self.playback_thread = threading.Thread(target=self.playback)
+                    self.playback_thread.start()
+                    self.playback_status = "Stop"
+                else:
+                    self.playback_flag = False
+                    self.playback_thread.join()
+                    self.playback_thread = None
+                    self.viz.close(win=self.playback_win, env="amf_params")
+                    self.viz.close(win=self.playback_mask_win, env="amf_params")
+                    self.playback_status = "Play"
+            self.video_playback_panel.panel = update("Video Playback Panel")
+
+        self.video_playback_panel = VisdomControlPanel(
+            self.viz, update, trigger, "Video Playback Panel"
+        )
+
+    def playback(self):
+        index = self.playback_start_frame
+        while self.playback_flag:
+            resized_frame = frame_resize(self.frame_list[index].copy())
+            disp_image = frame_convert(resized_frame)
+            self.playback_win = self.viz.image(
+                disp_image,
+                win="playback_window",
+                opts=dict(width=320, height=250, caption=f"{index}"),
+                env="amf_params",
+            )
+            self.playback_mask_win = self.viz.image(
+                self.mask_list[index],
+                win="playback_mask_window",
+                opts=dict(width=320, height=250, caption=f"{index}"),
+                env="amf_params",
+            )
+            time.sleep(1.0 / self.frame_fps)
+            index += 1
+            if index >= len(self.frame_list):
+                index = 0
 
     def init_get_frame_panel(self):
         def update(name):
