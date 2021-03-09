@@ -21,7 +21,7 @@ def setup_package():
             "pandas",
             "opencv-python",
             "sklearn",
-            "visdom"
+            "visdom",
         ],
     )
 

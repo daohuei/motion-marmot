@@ -6,7 +6,7 @@ app = typer.Typer()
 
 @app.command()
 def run():
-    amf = AdvancedMotionFilter('model/scene_knn_model')
+    amf = AdvancedMotionFilter("model/scene_knn_model", 0, 0)
     print(amf)
 
 

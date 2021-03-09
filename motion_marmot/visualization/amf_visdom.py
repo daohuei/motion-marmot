@@ -9,94 +9,91 @@ from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingB
 from motion_marmot.utils.video_utils import extract_video, frame_convert, frame_resize
 
 
-class AMFVisdom():
-    DEFAULT_CONFIG = {
-        "bounding_box_threshold": 200
-    }
+class AMFVisdom:
+    DEFAULT_CONFIG = {"bounding_box_threshold": 200}
 
     def __init__(self, video):
         self.viz = Visdom(port=8090)
         self.viz_config = self.DEFAULT_CONFIG
         self.ctl = None
         self.frame_list, video_meta = extract_video(video)
-        self.frame_fps = video_meta['fps']
+        self.frame_fps = video_meta["fps"]
         self.amf = AdvancedMotionFilter(
-            ssc_model='model/scene_knn_model',
-            frame_width=video_meta['width'],
-            frame_height=video_meta['height']
+            ssc_model="model/scene_knn_model",
+            frame_width=video_meta["width"],
+            frame_height=video_meta["height"],
         )
 
     def init_control_panel(self):
         def update(name):
-            return self.viz.properties([
-                {
-                    "type": "number",
-                    "name": "Bounding Box Threshold",
-                    "value": self.viz_config.get('bounding_box_threshold', 200),
-                },
-                {
-                    "type": "checkbox",
-                    "name": "History Variance",
-                    "value": self.amf.amf_history_variance,
-                },
-                {
-                    "type": "number",
-                    "name": "History Variance Threshold",
-                    "value": self.amf.amf_variance_threshold,
-                },
-                {
-                    "type": "number",
-                    "name": "History Variance Sample Amount",
-                    "value": self.amf.amf_variance_sample_amount,
-                },
-                {
-                    "type": "checkbox",
-                    "name": "Large Background Movement",
-                    "value": self.amf.amf_drop_large_bg_motion,
-                },
-                {
-                    "type": "checkbox",
-                    "name": "Dynamic Bounding Box",
-                    "value": self.amf.amf_dynamic_bbx,
-                }
-            ], win=name, env="amf_stream")
+            return self.viz.properties(
+                [
+                    {
+                        "type": "number",
+                        "name": "Bounding Box Threshold",
+                        "value": self.viz_config.get("bounding_box_threshold", 200),
+                    },
+                    {
+                        "type": "checkbox",
+                        "name": "History Variance",
+                        "value": self.amf.amf_history_variance,
+                    },
+                    {
+                        "type": "number",
+                        "name": "History Variance Threshold",
+                        "value": self.amf.amf_variance_threshold,
+                    },
+                    {
+                        "type": "number",
+                        "name": "History Variance Sample Amount",
+                        "value": self.amf.amf_variance_sample_amount,
+                    },
+                    {
+                        "type": "checkbox",
+                        "name": "Large Background Movement",
+                        "value": self.amf.amf_drop_large_bg_motion,
+                    },
+                    {
+                        "type": "checkbox",
+                        "name": "Dynamic Bounding Box",
+                        "value": self.amf.amf_dynamic_bbx,
+                    },
+                ],
+                win=name,
+                env="amf_stream",
+            )
 
         def trigger(context):
             if context["event_type"] != "PropertyUpdate":
                 return
             if context["target"] != self.ctl.panel:
                 return
-            property_name = context \
-                .get('pane_data') \
-                .get('content')[context.get('propertyId')] \
-                .get('name')
-            if property_name == 'Bounding Box Threshold':
-                self.viz_config['bounding_box_threshold'] = int(context.get('value'))
-            elif property_name == 'History Variance':
-                self.amf.amf_history_variance = context.get('value')
-            elif property_name == 'History Variance Threshold':
-                self.amf.amf_variance_threshold = int(context.get('value'))
-            elif property_name == 'History Variance Sample Amount':
-                self.amf.amf_variance_sample_amount = int(context.get('value'))
-            elif property_name == 'Large Background Movement':
-                self.amf.amf_drop_large_bg_motion = context.get('value')
-            elif property_name == 'Dynamic Bounding Box':
-                self.amf.amf_dynamic_bbx = context.get('value')
+            property_name = (
+                context.get("pane_data")
+                .get("content")[context.get("propertyId")]
+                .get("name")
+            )
+            if property_name == "Bounding Box Threshold":
+                self.viz_config["bounding_box_threshold"] = int(context.get("value"))
+            elif property_name == "History Variance":
+                self.amf.amf_history_variance = context.get("value")
+            elif property_name == "History Variance Threshold":
+                self.amf.amf_variance_threshold = int(context.get("value"))
+            elif property_name == "History Variance Sample Amount":
+                self.amf.amf_variance_sample_amount = int(context.get("value"))
+            elif property_name == "Large Background Movement":
+                self.amf.amf_drop_large_bg_motion = context.get("value")
+            elif property_name == "Dynamic Bounding Box":
+                self.amf.amf_dynamic_bbx = context.get("value")
             self.ctl.panel = update("Control Panel")
 
-        self.ctl = VisdomControlPanel(
-            self.viz,
-            update,
-            trigger,
-            "Control Panel"
-        )
+        self.ctl = VisdomControlPanel(self.viz, update, trigger, "Control Panel")
 
     def motion_detection(self, frame):
         mask = self.amf.apply(frame.copy())
         display_frame = frame.copy()
         motion_bbxes = self.amf.detect_motion(
-            mask,
-            self.viz_config.get('bounding_box_threshold', 200)
+            mask, self.viz_config.get("bounding_box_threshold", 200)
         )
         for bbx in motion_bbxes:
             box = BoundingBox(*bbx)
@@ -108,7 +105,7 @@ class AMFVisdom():
                 width=320,
                 height=250,
             ),
-            env="amf_stream"
+            env="amf_stream",
         )
         return display_frame
 
@@ -119,13 +116,13 @@ class AMFVisdom():
             mask_metadata.avg,
             mask_metadata.std,
             self.amf.frame_width,
-            self.amf.frame_height
+            self.amf.frame_height,
         )
         return frame_scene
 
     def show_ssc_graph(self):
 
-        print('Show SSC Graph')
+        print("Show SSC Graph")
 
         ssc_prediction = []
 
@@ -135,18 +132,15 @@ class AMFVisdom():
             ssc_prediction.append(frame_scene)
 
         n = len(self.frame_list)
-        x = np.linspace(0, n-1, num=n)
+        x = np.linspace(0, n - 1, num=n)
         scene_y = np.array(ssc_prediction)
 
         self.viz.line(
             X=x,
             Y=scene_y,
-            opts=dict(
-                title="ssc prediction graph",
-                showlegend=True
-            ),
+            opts=dict(title="ssc prediction graph", showlegend=True),
             env="amf_ssc",
-            win="ssc_prediction_graph"
+            win="ssc_prediction_graph",
         )
 
     def stream_video(self):
@@ -161,10 +155,10 @@ class AMFVisdom():
                     width=320,
                     height=250,
                 ),
-                env="amf_stream"
+                env="amf_stream",
             )
 
-            time.sleep(1.0/self.frame_fps)
+            time.sleep(1.0 / self.frame_fps)
 
     def start(self):
         print("Visdom Playground Activating")
@@ -188,10 +182,10 @@ class AMFParamVisdom(AMFVisdom):
 
         # For labeling the scene of SSC
         self.label_panel = None
-        self.label_list = np.zeros(len(self.frame_list)-1)
+        self.label_list = np.zeros(len(self.frame_list) - 1)
         self.label_start_index = 0
         self.label_end_index = 0
-        self.label_data_dir = ''
+        self.label_data_dir = ""
         self.label_class_value = 0
 
         # Basic features extracted from the MOG2 mask of each frame
@@ -224,124 +218,124 @@ class AMFParamVisdom(AMFVisdom):
 
     def init_get_frame_panel(self):
         def update(name):
-            return self.viz.properties([
-                {
-                    "type": "number",
-                    "name": "Frame Number",
-                    "value": self.frame_number,
-                },
-                {
-                    "type": "number",
-                    "name": "Bounding Box Threshold",
-                    "value": self.viz_config.get('bounding_box_threshold', 200)
-                }
-            ], win=name, env="amf_params")
+            return self.viz.properties(
+                [
+                    {
+                        "type": "number",
+                        "name": "Frame Number",
+                        "value": self.frame_number,
+                    },
+                    {
+                        "type": "number",
+                        "name": "Bounding Box Threshold",
+                        "value": self.viz_config.get("bounding_box_threshold", 200),
+                    },
+                ],
+                win=name,
+                env="amf_params",
+            )
 
         def trigger(context):
             if context["event_type"] != "PropertyUpdate":
                 return
             if context["target"] != self.get_frame_panel.panel:
                 return
-            property_name = context \
-                .get('pane_data') \
-                .get('content')[context.get('propertyId')] \
-                .get('name')
-            if property_name == 'Frame Number':
-                self.frame_number = int(context.get('value'))
-            elif property_name == 'Bounding Box Threshold':
-                self.viz_config['bounding_box_threshold'] = int(context.get('value'))
+            property_name = (
+                context.get("pane_data")
+                .get("content")[context.get("propertyId")]
+                .get("name")
+            )
+            if property_name == "Frame Number":
+                self.frame_number = int(context.get("value"))
+            elif property_name == "Bounding Box Threshold":
+                self.viz_config["bounding_box_threshold"] = int(context.get("value"))
 
             resized_frame = frame_resize(self.frame_list[self.frame_number].copy())
 
             mog2_disp_mask = self.mask_list[self.frame_number]
             mog2_motion_bbxs = self.amf.detect_motion(
-                mog2_disp_mask, self.viz_config.get('bounding_box_threshold', 200)
+                mog2_disp_mask, self.viz_config.get("bounding_box_threshold", 200)
             )
 
             fd_disp_mask = self.fd_mask_list[self.frame_number]
             fd_motion_bbxs = self.amf.detect_motion(
-                fd_disp_mask, self.viz_config.get('bounding_box_threshold', 200)
+                fd_disp_mask, self.viz_config.get("bounding_box_threshold", 200)
             )
 
             for bbx in mog2_motion_bbxs:
                 self.amf.draw_detection_box(
-                    BoundingBox(*bbx),
-                    resized_frame,
-                    (0, 255, 0)
+                    BoundingBox(*bbx), resized_frame, (0, 255, 0)
                 )
 
             for bbx in fd_motion_bbxs:
                 self.amf.draw_detection_box(
-                    BoundingBox(*bbx),
-                    resized_frame,
-                    (255, 0, 0)
+                    BoundingBox(*bbx), resized_frame, (255, 0, 0)
                 )
 
             disp_image = frame_convert(resized_frame)
             self.show_frame_images(
-                disp_image,
-                mog2_disp_mask,
-                fd_disp_mask,
-                self.frame_number
+                disp_image, mog2_disp_mask, fd_disp_mask, self.frame_number
             )
             self.get_frame_panel.panel = update("Get Frame Panel")
 
         self.get_frame_panel = VisdomControlPanel(
-            self.viz,
-            update,
-            trigger,
-            "Get Frame Panel"
+            self.viz, update, trigger, "Get Frame Panel"
         )
 
     def init_label_panel(self):
         def update(name):
-            return self.viz.properties([
-                {
-                    "type": "number",
-                    "name": "Start Index",
-                    "value": self.label_start_index,
-                },
-                {
-                    "type": "number",
-                    "name": "End Index",
-                    "value": self.label_end_index,
-                },
-                {
-                    "type": "number",
-                    "name": "Label Class",
-                    "value": self.label_class_value,
-                },
-                {
-                    "type": "text",
-                    "name": "Label Data Directory Folder Name",
-                    "value": self.label_data_dir
-                },
-                {
-                    "type": "button",
-                    "name": "Store Label Value",
-                    "value": "label it!"
-                }
-            ], win=name, env="amf_params")
+            return self.viz.properties(
+                [
+                    {
+                        "type": "number",
+                        "name": "Start Index",
+                        "value": self.label_start_index,
+                    },
+                    {
+                        "type": "number",
+                        "name": "End Index",
+                        "value": self.label_end_index,
+                    },
+                    {
+                        "type": "number",
+                        "name": "Label Class",
+                        "value": self.label_class_value,
+                    },
+                    {
+                        "type": "text",
+                        "name": "Label Data Directory Folder Name",
+                        "value": self.label_data_dir,
+                    },
+                    {
+                        "type": "button",
+                        "name": "Store Label Value",
+                        "value": "label it!",
+                    },
+                ],
+                win=name,
+                env="amf_params",
+            )
 
         def trigger(context):
             if context["event_type"] != "PropertyUpdate":
                 return
             if context["target"] != self.label_panel.panel:
                 return
-            property_name = context \
-                .get('pane_data') \
-                .get('content')[context.get('propertyId')] \
-                .get('name')
-            if property_name == 'Start Index':
-                self.label_start_index = int(context.get('value'))
-            elif property_name == 'End Index':
-                self.label_end_index = int(context.get('value'))
-            elif property_name == 'Label Class':
-                self.label_class_value = int(context.get('value'))
-            elif property_name == 'Label Data Directory Folder Name':
-                self.label_data_dir = context.get('value')
-            elif property_name == 'Store Label Value':
-                if(self.label_start_index > self.label_end_index):
+            property_name = (
+                context.get("pane_data")
+                .get("content")[context.get("propertyId")]
+                .get("name")
+            )
+            if property_name == "Start Index":
+                self.label_start_index = int(context.get("value"))
+            elif property_name == "End Index":
+                self.label_end_index = int(context.get("value"))
+            elif property_name == "Label Class":
+                self.label_class_value = int(context.get("value"))
+            elif property_name == "Label Data Directory Folder Name":
+                self.label_data_dir = context.get("value")
+            elif property_name == "Store Label Value":
+                if self.label_start_index > self.label_end_index:
                     print("The start position need to be before the end")
                 elif not self.label_data_dir:
                     print("Please input label data directory folder name")
@@ -351,37 +345,28 @@ class AMFParamVisdom(AMFVisdom):
 
             self.label_panel.panel = update("Label Panel")
 
-        self.label_panel = VisdomControlPanel(
-            self.viz,
-            update,
-            trigger,
-            "Label Panel"
-        )
+        self.label_panel = VisdomControlPanel(self.viz, update, trigger, "Label Panel")
 
     def export_train_data(self, data_dir):
-        path = f'./data/{data_dir}'
+        path = f"./data/{data_dir}"
         if not os.path.exists(path):
             os.makedirs(path)
         file_name = f"{path}/scene.csv"
-        with open(file_name, 'a+', newline='') as train_dataset:
+        with open(file_name, "a+", newline="") as train_dataset:
             # Create a writer object from csv module
             train_dataset_writer = writer(train_dataset)
-            for i in list(range(self.label_start_index, self.label_end_index+1)):
-                train_dataset_writer.writerow([
-                    self.avg_mask_list[i],
-                    self.std_mask_list[i],
-                    self.amf.frame_width,
-                    self.amf.frame_height,
-                    self.label_class_value
-                ])
+            for i in list(range(self.label_start_index, self.label_end_index + 1)):
+                train_dataset_writer.writerow(
+                    [
+                        self.avg_mask_list[i],
+                        self.std_mask_list[i],
+                        self.amf.frame_width,
+                        self.amf.frame_height,
+                        self.label_class_value,
+                    ]
+                )
 
-    def show_frame_images(
-        self,
-        disp_image,
-        mog2_disp_mask,
-        fd_disp_mask,
-        frame_number
-    ):
+    def show_frame_images(self, disp_image, mog2_disp_mask, fd_disp_mask, frame_number):
         self.viz.image(
             disp_image,
             win="show_image",
@@ -390,7 +375,7 @@ class AMFParamVisdom(AMFVisdom):
                 width=320,
                 height=250,
             ),
-            env="amf_params"
+            env="amf_params",
         )
         self.viz.image(
             mog2_disp_mask,
@@ -400,7 +385,7 @@ class AMFParamVisdom(AMFVisdom):
                 width=320,
                 height=250,
             ),
-            env="amf_params"
+            env="amf_params",
         )
         self.viz.image(
             fd_disp_mask,
@@ -410,12 +395,12 @@ class AMFParamVisdom(AMFVisdom):
                 width=320,
                 height=250,
             ),
-            env="amf_params"
+            env="amf_params",
         )
 
     def update_mask_size_graph(self):
         n = len(self.frame_list)
-        x = np.linspace(0, n-1, num=n)
+        x = np.linspace(0, n - 1, num=n)
         total_y = np.array(self.total_mask_list)
         avg_y = np.array(self.avg_mask_list)
         std_y = np.array(self.std_mask_list)
@@ -426,67 +411,49 @@ class AMFParamVisdom(AMFVisdom):
         self.viz.line(
             X=x,
             Y=total_y,
-            opts=dict(
-                title="total mask size",
-                showlegend=True
-            ),
+            opts=dict(title="total mask size", showlegend=True),
             env="amf_params",
-            win="total_mask_graph"
+            win="total_mask_graph",
         )
 
         self.viz.line(
             X=x,
             Y=avg_y,
-            opts=dict(
-                title="average mask size",
-                showlegend=True
-            ),
+            opts=dict(title="average mask size", showlegend=True),
             env="amf_params",
-            win="avg_mask_graph"
+            win="avg_mask_graph",
         )
 
         self.viz.line(
             X=x,
             Y=std_y,
-            opts=dict(
-                title="standard deviation of mask size",
-                showlegend=True
-            ),
+            opts=dict(title="standard deviation of mask size", showlegend=True),
             env="amf_params",
-            win="std_mask_graph"
+            win="std_mask_graph",
         )
 
         self.viz.line(
             X=x,
             Y=mog2_count_y,
-            opts=dict(
-                title="contours count",
-                showlegend=True
-            ),
+            opts=dict(title="contours count", showlegend=True),
             env="amf_params",
-            win="mog2_contour_count_graph"
+            win="mog2_contour_count_graph",
         )
 
         self.viz.line(
             X=x,
             Y=fd_count_y,
-            opts=dict(
-                title="fd contours count",
-                showlegend=True
-            ),
+            opts=dict(title="fd contours count", showlegend=True),
             env="amf_params",
-            win="fd_contour_count_graph"
+            win="fd_contour_count_graph",
         )
 
         self.viz.line(
             X=x,
             Y=var_y,
-            opts=dict(
-                title="variance of history frame",
-                showlegend=True
-            ),
+            opts=dict(title="variance of history frame", showlegend=True),
             env="amf_params",
-            win="variance_graph"
+            win="variance_graph",
         )
 
     def store_params(
@@ -498,7 +465,7 @@ class AMFParamVisdom(AMFVisdom):
         std_area,
         mog2_contour_count,
         fd_contour_count,
-        variance
+        variance,
     ):
         self.mask_list.append(mog2_mask)
         self.fd_mask_list.append(fd_mask)
@@ -519,7 +486,7 @@ class AMFParamVisdom(AMFVisdom):
         progress_count = 1
         # Run Through Video
         for frame in self.frame_list:
-            print(f'{int(progress_count/frame_length*100)} %', end='\r')
+            print(f"{int(progress_count/frame_length*100)} %", end="\r")
             resized_frame = frame_resize(frame.copy())
             mog2_mask = self.apply_mog2(resized_frame)
             fd_mask = self.apply_fd(resized_frame)
@@ -534,7 +501,7 @@ class AMFParamVisdom(AMFVisdom):
                 mog2_mask_metadata.std,
                 len(mog2_mask_metadata.contours),
                 len(fd_mask_metadata.contours),
-                self.amf.calculate_variance(mog2_mask_metadata.std)
+                self.amf.calculate_variance(mog2_mask_metadata.std),
             )
             progress_count += 1
 
@@ -548,7 +515,7 @@ class AMFParamVisdom(AMFVisdom):
             time.sleep(1)
 
 
-class VisdomControlPanel():
+class VisdomControlPanel:
     def __init__(self, viz, update_callback, trigger_callback, name):
         self.panel = None
         self.viz = viz
@@ -556,9 +523,7 @@ class VisdomControlPanel():
         self.trigger = trigger_callback
         self.name = name
         self.panel = self.update(self.name)
-        self.viz.register_event_handler(
-            self.trigger, self.panel
-        )
+        self.viz.register_event_handler(self.trigger, self.panel)
 
 
 app = typer.Typer()
@@ -579,7 +544,7 @@ def params_graph(video: str):
 @app.command()
 def ssc_graph(video: str):
     amf_visdom = AMFVisdom(video)
-    amf_visdom.viz.close(env='amf_ssc')
+    amf_visdom.viz.close(env="amf_ssc")
     amf_visdom.show_ssc_graph()
 
 
