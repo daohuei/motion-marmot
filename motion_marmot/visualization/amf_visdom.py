@@ -358,8 +358,10 @@ class AMFParamVisdom(AMFVisdom):
             for i in list(range(self.label_start_index, self.label_end_index + 1)):
                 train_dataset_writer.writerow(
                     [
+                        self.total_mask_list[i],
                         self.avg_mask_list[i],
                         self.std_mask_list[i],
+                        self.variance_list[i],
                         self.amf.frame_width,
                         self.amf.frame_height,
                         self.label_class_value,
