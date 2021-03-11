@@ -6,12 +6,7 @@ import cv2
 import numpy as np
 from csv import writer
 from visdom import Visdom
-from motion_marmot.advanced_motion_filter import (
-    AdvancedMotionFilter,
-    BoundingBox,
-    FD,
-    MotionMaskMetadata,
-)
+from motion_marmot.advanced_motion_filter import AdvancedMotionFilter, BoundingBox, FD
 from motion_marmot.utils.video_utils import extract_video, frame_convert, frame_resize
 
 
@@ -273,8 +268,6 @@ class AMFParamVisdom(AMFVisdom):
                     self.playback_flag = False
                     self.playback_thread.join()
                     self.playback_thread = None
-                    self.viz.close(win=self.playback_win, env="amf_params")
-                    self.viz.close(win=self.playback_mask_win, env="amf_params")
                     self.playback_status = "Play"
             self.video_playback_panel.panel = update("Video Playback Panel")
 
