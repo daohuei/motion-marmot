@@ -25,8 +25,8 @@ class SimpleSceneClassifier:
         y = data["scene"]
         return x, y
 
-    def train_model(self, train_x, train_y):
-        return KNeighborsClassifier(n_neighbors=4).fit(train_x, train_y)
+    def train_model(self, train_x, train_y, k=4):
+        return KNeighborsClassifier(n_neighbors=k).fit(train_x, train_y)
 
     def save_model(self, model, model_name):
         from joblib import dump
